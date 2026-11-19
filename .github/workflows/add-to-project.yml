@@ -1,16 +1,27 @@
+# Adds every new issue and pull request of this repository
+# to the organization board "Smart Helpdesk":
+# https://github.com/orgs/helpdesk-teams/projects/1
+#
+# GITHUB_TOKEN cannot write to organization projects, so the job uses
+# the organization secret ADD_TO_PROJECTS_PAT (fine-grained token with
+# "Projects: Read and write" on helpdesk-teams).
 name: Add to project
 
 on:
   issues:
-    types: [opened]
+    types: [opened, reopened, transferred]
   pull_request:
-    types: [opened]
+    types: [opened, reopened]
+
+permissions: {}
 
 jobs:
   add-to-project:
+    name: Add to Smart Helpdesk board
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@v1.0.2
+      # Pinned to the commit of v2.0.1, so a moved tag cannot change what runs
+      - uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
         with:
           project-url: https://github.com/orgs/helpdesk-teams/projects/1
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          github-token: ${{ secrets.ADD_TO_PROJECTS_PAT }}
