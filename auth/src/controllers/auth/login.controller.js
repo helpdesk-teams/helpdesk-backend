@@ -1,30 +1,31 @@
-import express from 'express';
-import User from '../../models/userModel.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import {userSchema} from '../../validators/authValidator.js';
+import User from '../../models/userModel.js';
+import { loginSchema } from '../../validators/authValidator.js';
 
 export const login = async (req, res) => {
-    try {
-        const {username, password} = req.body;
-
-        const { error } = userSchema.safeParse({ username, password });
-        if (error) {
-            return res.status(400).json({ message: error.errors[0].message });
-        }
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-        const token = jwt.sign({ userId: user._id }, "louay", { expiresIn: '1h' });
-        res.status(200).json({ token });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.issues[0].message });
     }
-}
-    
+    const { email, password } = parsed.data;
+
+    const user = await User.findOne({ email });
+    const ok = user && (await bcrypt.compare(password, user.password));
+    if (!ok) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+    );
+
+    return res.json({ token });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
